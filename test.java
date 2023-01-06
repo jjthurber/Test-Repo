@@ -1,160 +1,134 @@
-package fr.lehtto.maven.plugins.papermc.entity;
+plugins {
+    id 'java-gradle-plugin'
+    id 'groovy'
+}
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import org.jetbrains.annotations.Unmodifiable;
-
-/**
- * Version entity.
- *
- * @author Lehtto
- * @version 0.0.1
- * @since 0.0.1
- */
-public class Version implements Serializable {
-
-  private static final long serialVersionUID = 6376247568674063744L;
-
-  /**
-   * List of build number.
-   */
-  private final List<Integer> builds;
-  /**
-   * Project ID.
-   */
-  @JsonProperty("project_id")
-  private String projectId;
-  /**
-   * Project name.
-   */
-  @JsonProperty("project_name")
-  private String projectName;
-  /**
-   * Minecraft version.
-   */
-  @JsonProperty("version")
-  private String versionStr;
-
-  /**
-   * Default constructor.
-   */
-  public Version() {
-    builds = new ArrayList<>();
-  }
-
-  /**
-   * Gets the list of build number.
-   *
-   * @return immutable copy list of build number
-   */
-  public @Unmodifiable List<Integer> getBuilds() {
-    return Collections.unmodifiableList(builds);
-  }
-
-  /**
-   * Sets the list of build number.
-   *
-   * @param builds the list of build number to set
-   */
-  public void setBuilds(final List<Integer> builds) {
-    this.builds.clear();
-    if (null != builds) {
-      this.builds.addAll(builds);
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifactId = "${project.name}"
+            from components.java
+            pom {
+                name = 'GraphQL Model Generator Plugin'
+                description = 'This plugin helps to generate java POJO models for GraphQL Request Body Generator library.'
+                url = 'https://github.com/VladislavSevruk/GraphQlRequestBodyGenerator/graphql-model-generator-plugin'
+                licenses {
+                    license {
+                        name = 'MIT License'
+                        url = 'https://opensource.org/licenses/MIT'
+                    }
+                }
+                developers {
+                    developer {
+                        id = 'uladzislau_seuruk'
+                        name = 'Uladzislau Seuruk'
+                        email = 'vladislavsevruk@gmail.com'
+                    }
+                }
+                scm {
+                    connection = 'scm:git:git://VladislavSevruk/GraphQlRequestBodyGenerator.git'
+                    developerConnection = 'scm:git:ssh://VladislavSevruk/GraphQlRequestBodyGenerator.git'
+                    url = 'https://github.com/VladislavSevruk/GraphQlRequestBodyGenerator/tree/master'
+                }
+            }
+        }
     }
-  }
+}
 
-  /**
-   * Gets the project ID.
-   *
-   * @return the project ID
-   */
-  public String getProjectId() {
-  }
+repositories {
+    mavenCentral()
+}
 
-  /**
-   * Sets the project ID.
-   *
-   * @param projectId the project ID to set
-   */
-  public void setProjectId(final String projectId) {
-    this.projectId = projectId;
-  }
-
-  /**
-   * Gets the project name.
-   *
-   * @return the project name
-   */
-  public String getProjectName() {
-    return projectName;
-  }
-
-  /**
-   * Sets the project name.
-   *
-   * @param projectName the project name to set
-   */
-  public void setProjectName(final String projectName) {
-    this.projectName = projectName;
-  }
-
-  /**
-   * Gets the version.
-   *
-   * @return the version
-   */
-  public String getVersion() {
-    return versionStr;
-  }
-
-  /**
-   * Sets the version.
-   *
-   * @param version the version to set
-   */
-  public void setVersion(final String version) {
-    this.versionStr = version;
-  }
-
-  /**
-   * Gets the latest build number.
-   *
-   * @return the latest build number
-   */
-  public int getLatestBuild() {
-    return Collections.max(getBuilds());
-  }
-
-  @Override
-  public boolean equals(final Object o) {
-    if (this == o) {
-      return true;
+sourceSets {
+    integrationTest {
+        compileClasspath += sourceSets.main.output + sourceSets.test.output
+        runtimeClasspath += sourceSets.main.output + sourceSets.test.output
     }
-    if (null == o || getClass() != o.getClass()) {
-      return false;
+    functionalTest {
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
     }
-    final Version version = (Version) o;
-    return Objects.equals(getBuilds(), version.getBuilds()) && Objects.equals(getProjectId(),
-        version.getProjectId()) && Objects.equals(getProjectName(), version.getProjectName())
-        && Objects.equals(versionStr, version.versionStr);
-  }
+}
 
-  @Override
-  public int hashCode() {
-    return Objects.hash(getBuilds(), getProjectId(), getProjectName(), versionStr);
-  }
+tasks.register('integrationTest', Test) {
+    description = 'Runs integration tests.'
+    group = 'verification'
+    shouldRunAfter test
+}
 
-  @Override
-  public String toString() {
-    return "Version{" +
-        "project_id='" + projectId + '\'' +
-        ", project_name='" + projectName + '\'' +
-        ", version='" + versionStr + '\'' +
-        ", builds=" + builds +
-        '}';
-  }
+tasks.register('functionalTest', Test) {
+    description = 'Runs functional tests.'
+    group = 'verification'
+    shouldRunAfter integrationTest
+}
+
+configurations {
+    integrationTestImplementation.extendsFrom testImplementation
+    integrationTestRuntimeOnly.extendsFrom testRuntimeOnly
+}
+
+check.dependsOn integrationTest, functionalTest
+
+integrationTest {
+    testClassesDirs = sourceSets.integrationTest.output.classesDirs
+    classpath = sourceSets.integrationTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
+functionalTest {
+    testClassesDirs = sourceSets.functionalTest.output.classesDirs
+    classpath = sourceSets.functionalTest.runtimeClasspath
+    useJUnitPlatform()
+}
+
+gradlePlugin {
+    plugins {
+        simplePlugin {
+            id = "${group}.${project.name}"
+            implementationClass = 'com.github.vladislavsevruk.generator.model.graphql.GqlModelGeneratorPlugin'
+        }
+    }
+    testSourceSets(sourceSets.functionalTest)
+}
+
+dependencies {
+    compileOnly(
+            "org.projectlombok:lombok:${lombokVersion}"
+    )
+    annotationProcessor(
+            "org.projectlombok:lombok:${lombokVersion}"
+    )
+    implementation (
+            "org.apache.logging.log4j:log4j-api:${log4jVersion}",
+            "org.apache.logging.log4j:log4j-core:${log4jVersion}",
+            "com.github.vladislavsevruk:java-class-generator:${javaClassGeneratorVersion}"
+    )
+    testCompileOnly(
+            "org.projectlombok:lombok:${lombokVersion}"
+    )
+    testAnnotationProcessor(
+            "org.projectlombok:lombok:${lombokVersion}"
+    )
+    testImplementation (
+            "org.junit.jupiter:junit-jupiter-api:${junitVersion}",
+            "org.junit.jupiter:junit-jupiter-params:${junitVersion}",
+            "org.mockito:mockito-core:${mockitoVersion}",
+            "org.mockito:mockito-junit-jupiter:${mockitoVersion}"
+    )
+    testRuntimeOnly (
+            "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
+    )
+    functionalTestImplementation (
+            platform("org.spockframework:spock-bom:${spockVersion}"),
+            'org.spockframework:spock-core'
+    )
+}
+
+jacocoTestReport {
+    dependsOn test, integrationTest, functionalTest
+    executionData fileTree(project.rootDir.absolutePath).include("**/build/jacoco/*.exec")
+    reports {
+        xml.enabled true
+        html.enabled true
+    }
 }
