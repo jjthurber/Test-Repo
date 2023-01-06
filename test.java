@@ -73,7 +73,6 @@ public class Version implements Serializable {
    * @return the project ID
    */
   public String getProjectId() {
-    return projectId;
   }
 
   /**
